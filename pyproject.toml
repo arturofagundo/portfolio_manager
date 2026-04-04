@@ -1,0 +1,21 @@
+[project]
+name = "portfolio-manager"
+version = "0.1.0"
+description = "A Streamlit app for CSV management using Polars"
+dependencies = [
+    "streamlit",
+    "polars",
+    "pandas",
+]
+readme = "README.md"
+requires-python = ">=3.13"
+
+[tool.uv]
+managed = true
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.0",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.9",
+]
