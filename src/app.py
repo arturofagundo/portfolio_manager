@@ -14,6 +14,7 @@ and perform various aggregations and metrics analysis.
 
 # Sidebar for file uploads
 st.sidebar.header("📁 Upload Data")
+truncate_ragged = st.sidebar.checkbox("Truncate ragged lines", value=True, help="Truncate rows with more fields than defined in the header.")
 uploaded_files = st.sidebar.file_uploader("Choose CSV files", type="csv", accept_multiple_files=True)
 
 if uploaded_files:
@@ -21,7 +22,7 @@ if uploaded_files:
     for file in uploaded_files:
         try:
             # Polars can read from a bytes IO object directly
-            df = pl.read_csv(file)
+            df = pl.read_csv(file, truncate_ragged_lines=truncate_ragged)
             dfs.append(df)
             st.sidebar.success(f"Successfully loaded: {file.name}")
         except Exception as e:
