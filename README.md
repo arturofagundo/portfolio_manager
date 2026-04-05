@@ -32,7 +32,7 @@ This project uses `uv` for dependency management.
 To run the Streamlit app:
 
 ```bash
-uv run streamlit run app.py
+uv run streamlit run src/app.py
 ```
 
 The application will be available at `http://localhost:8501`.
