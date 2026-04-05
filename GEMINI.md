@@ -26,7 +26,7 @@ The project follows a single-file application structure (`app.py`) for the front
 
 ### Key Commands
 -   **Install Dependencies:** `uv sync`
--   **Run Application:** `uv run streamlit run app.py`
+-   **Run Application:** `uv run streamlit run src/app.py`
 -   **Linting (Ruff):** `uv run ruff check .`
 -   **Type Checking (Basedpyright):** `uv run basedpyright`
 -   **Pre-commit Install:** `uv run pre-commit install`
@@ -41,7 +41,7 @@ The project follows a single-file application structure (`app.py`) for the front
 -   **Type Safety:** Explicitly handle numeric vs. non-numeric columns when performing aggregations.
 
 ### Project Structure
--   `app.py`: Main entry point containing the UI and data processing pipeline.
+-   `src/app.py`: Main entry point containing the UI and data processing pipeline.
 -   `pyproject.toml`: Defines project metadata and dependencies.
 -   `uv.lock`: Ensures reproducible builds.
 -   `.gitignore`: Standard Python template with `uv` and environment exclusions.
