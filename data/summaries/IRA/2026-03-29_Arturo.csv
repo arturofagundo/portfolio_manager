@@ -1,0 +1,4 @@
+﻿Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Today's Gain/Loss Percent,Total Gain/Loss Dollar,Total Gain/Loss Percent,Percent Of Account,Cost Basis Total,Average Cost Basis,Type
+221812302,ROTH IRA,CORE**,FDIC-INSURED DEPOSIT SWEEP,,,,$3.95,,,,,0.00%,,,Cash,
+221812302,ROTH IRA,SFILX,SCHWAB FUNDAMENTAL INTL SMALL EQ INDEX,3109.283,$15.63,-$0.10,$48598.09,-$310.93,-0.64%,+$13987.54,+40.41%,51.66%,$34610.55,$11.13,Cash,
+221812302,ROTH IRA,WMICX,WASATCH MICROCAP,5530.666,$8.22,-$0.15,$45462.07,-$829.60,-1.80%,+$6411.07,+16.41%,48.33%,$39051.00,$7.06,Cash,
