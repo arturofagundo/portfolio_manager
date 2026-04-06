@@ -1,0 +1,13 @@
+{
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownParameterType": false,
+  "reportExplicitAny": true,
+  "reportAny": true,
+  "pythonVersion": "3.13",
+  "include": ["src"],
+  "exclude": ["**/__pycache__", "**/.venv", "**/node_modules"]
+}
