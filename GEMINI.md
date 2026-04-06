@@ -16,7 +16,7 @@ This project is a Streamlit-based web application designed for high-performance 
 
 ## Architecture
 
-The project follows a single-file application structure (`app.py`) for the frontend and business logic, leveraging Polars for "lazy" and "eager" data processing where appropriate.
+The project follows a modular multi-page Streamlit architecture. Business logic and data transformation utilities are centralized in `src/data_utils.py`, while individual views are isolated in the `src/pages/` directory.
 
 ## Building and Running
 
@@ -38,13 +38,17 @@ The project follows a single-file application structure (`app.py`) for the front
 ### Coding Style
 -   **Polars-First:** Always prefer Polars expressions (`pl.col(...)`) over manual Python loops or Pandas for data transformations to ensure maximum performance.
 -   **Diagonal Concatenation:** When combining multiple CSVs, use `pl.concat(..., how="diagonal")` to handle varying schemas gracefully.
--   **Type Safety:** Explicitly handle numeric vs. non-numeric columns when performing aggregations.
+-   **Recursive Expansion:** Complex funds (e.g., target-date funds) should be expanded into their constituent assets using the shared expansion logic in `holdings.py`.
+-   **Type Safety:** Explicitly handle numeric vs. non-numeric columns and use type annotations in all shared utilities.
 
 ### Project Structure
--   `src/app.py`: Main entry point containing the UI and data processing pipeline.
+-   `src/app.py`: Main router using `st.navigation`.
+-   `src/data_utils.py`: Centralized Polars logic and mapping I/O.
+-   `src/pages/holdings.py`: Portfolio snapshot and visualization logic.
+-   `src/pages/fund_details.py`: UI for managing symbols, classes, and compositions.
+-   `data/summaries/`: Directory for periodic CSV snapshots of holdings.
+-   `data/mappings/`: Persistent JSON files for user-defined metadata.
 -   `pyproject.toml`: Defines project metadata and dependencies.
--   `uv.lock`: Ensures reproducible builds.
--   `.gitignore`: Standard Python template with `uv` and environment exclusions.
 
 ### Testing
 -   Currently, validation is performed manually through the Streamlit interface. 
