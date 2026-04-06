@@ -1,20 +1,23 @@
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.15.9
-    hooks:
-      # Run the linter.
-      - id: ruff
-        args: [ --fix ]
-      # Run the formatter.
-      - id: ruff-format
-
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff
+        entry: python -m ruff check --fix
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff-format
+        entry: python -m ruff format
+        language: system
+        types: [python]
+
       - id: basedpyright
         name: basedpyright
-        entry: uv run basedpyright
+        entry: python -m basedpyright
         language: system
+        types: [python]
         types: [python]
         pass_filenames: false
