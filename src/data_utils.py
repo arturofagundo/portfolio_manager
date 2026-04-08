@@ -2,9 +2,37 @@ import glob
 import json
 import os
 import re
+from dataclasses import dataclass, field
 from typing import cast
 
 import polars as pl
+
+# --- DATA STRUCTURES ---
+
+
+@dataclass
+class FundInfo:
+    symbol: str = ""
+    asset_class: str = "Other/Unclassified"
+    composition: dict[str, float] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> "FundInfo":
+        return cls(
+            symbol=str(data.get("Symbol", "")),
+            asset_class=str(data.get("Asset Class", "Other/Unclassified")),
+            composition=cast(dict[str, float], data.get("Composition", {})),
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        res: dict[str, object] = {
+            "Symbol": self.symbol,
+            "Asset Class": self.asset_class,
+        }
+        if self.composition:
+            res["Composition"] = self.composition
+        return res
+
 
 # --- FILE UTILS ---
 
@@ -31,51 +59,28 @@ def clean_currency(series: pl.Expr) -> pl.Expr:
 # --- MAPPING UTILS ---
 
 
-def load_mappings() -> tuple[
-    dict[str, str], dict[str, dict[str, float]], dict[str, str]
-]:
-    """Loads all mapping configurations."""
-    asset_path = "data/mappings/asset_classes.json"
-    comp_path = "data/mappings/fund_compositions.json"
-    symbol_path = "data/mappings/symbols.json"
-
+def load_fund_info() -> dict[str, FundInfo]:
+    """Loads all fund information configurations."""
+    path = "data/mappings/fund_information.json"
     os.makedirs("data/mappings", exist_ok=True)
 
-    if not os.path.exists(asset_path):
-        with open(asset_path, "w") as f:
-            json.dump({}, f)
-    if not os.path.exists(comp_path):
-        with open(comp_path, "w") as f:
-            json.dump({}, f)
-    if not os.path.exists(symbol_path):
-        with open(symbol_path, "w") as f:
-            json.dump({}, f)
+    if not os.path.exists(path):
+        return {}
 
     try:
-        with open(asset_path) as f:
-            asset_map = cast(dict[str, str], json.load(f))
-        with open(comp_path) as f:
-            comp_map = cast(dict[str, dict[str, float]], json.load(f))
-        with open(symbol_path) as f:
-            symbol_map = cast(dict[str, str], json.load(f))
-        return asset_map, comp_map, symbol_map
+        with open(path) as f:
+            data = cast(dict[str, dict[str, object]], json.load(f))
+            return {k: FundInfo.from_dict(v) for k, v in data.items()}
     except (json.JSONDecodeError, OSError):
-        return {}, {}, {}
+        return {}
 
 
-def save_mappings(
-    asset_map: dict[str, str],
-    comp_map: dict[str, dict[str, float]],
-    symbol_map: dict[str, str],
-) -> None:
-    """Saves mapping configurations to disk."""
+def save_fund_info(fund_map: dict[str, FundInfo]) -> None:
+    """Saves fund information configurations to disk."""
+    path = "data/mappings/fund_information.json"
     os.makedirs("data/mappings", exist_ok=True)
-    with open("data/mappings/asset_classes.json", "w") as f:
-        json.dump(asset_map, f, indent=4)
-    with open("data/mappings/fund_compositions.json", "w") as f:
-        json.dump(comp_map, f, indent=4)
-    with open("data/mappings/symbols.json", "w") as f:
-        json.dump(symbol_map, f, indent=4)
+    with open(path, "w") as f:
+        json.dump({k: v.to_dict() for k, v in fund_map.items()}, f, indent=4)
 
 
 # --- DATA DISCOVERY ---
@@ -138,14 +143,10 @@ def get_all_available_funds() -> dict[str, str]:
             df = pl.read_csv(f, truncate_ragged_lines=True)
 
             # Map column names to potential roles
-            name_cols = [
-                c
-                for c in ["Fund name", "Description", "Account Name"]
-                if c in df.columns
-            ]
-            # Fallback to first two columns
-            if not name_cols:
-                name_cols = df.columns[:2]
+            name_cols = [c for c in ["Fund name", "Description"] if c in df.columns]
+            # Fallback to first column if neither found
+            if not name_cols and len(df.columns) > 0:
+                name_cols = [df.columns[0]]
 
             symbol_col = "Symbol" if "Symbol" in df.columns else None
 
@@ -154,7 +155,8 @@ def get_all_available_funds() -> dict[str, str]:
                     continue
                 # Get both name and potentially symbol
                 if symbol_col:
-                    temp_df = df.select([pl.col(col), pl.col(symbol_col)]).filter(
+                    unique_cols = list({col, symbol_col})
+                    temp_df = df.select([pl.col(c) for c in unique_cols]).filter(
                         pl.col(col).is_not_null()
                     )
                     for row in temp_df.to_dicts():
@@ -186,9 +188,9 @@ def get_all_available_funds() -> dict[str, str]:
             pass
 
     # 3. Include sub-funds from existing compositions
-    _, comp_map, _ = load_mappings()
-    for sub_funds in comp_map.values():
-        for sf in sub_funds.keys():
+    fund_info = load_fund_info()
+    for info in fund_info.values():
+        for sf in info.composition.keys():
             cleaned = clean_name(sf)
             if cleaned and cleaned not in funds:
                 funds[cleaned] = ""
