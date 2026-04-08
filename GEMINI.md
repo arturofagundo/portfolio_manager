@@ -38,18 +38,18 @@ The project follows a modular multi-page Streamlit architecture. Business logic 
 ### Coding Style
 -   **Polars-First:** Always prefer Polars expressions (`pl.col(...)`) over manual Python loops or Pandas for data transformations to ensure maximum performance.
 -   **Diagonal Concatenation:** When combining multiple CSVs, use `pl.concat(..., how="diagonal")` to handle varying schemas gracefully.
--   **Recursive Expansion:** Complex funds (e.g., target-date funds) should be expanded into their constituent assets using the shared expansion logic in `holdings.py`.
--   **Type Safety:** Explicitly handle numeric vs. non-numeric columns and use type annotations in all shared utilities.
+-   **Recursive Expansion:** Complex funds (e.g., target-date funds) should be expanded into their constituent assets using the shared expansion logic in `holdings.py`, powered by the unified `FundInfo` mapping.
+-   **Multi-Account Support:** The system dynamically discovers account-specific subdirectories in `data/summaries/` and aggregates the latest data for each.
 
 ### Project Structure
 -   `src/app.py`: Main router using `st.navigation`.
--   `src/data_utils.py`: Centralized Polars logic and mapping I/O.
+-   `src/data_utils.py`: Centralized Polars logic and mapping I/O; defines the `FundInfo` dataclass.
 -   `src/pages/holdings.py`: Portfolio snapshot and visualization logic.
 -   `src/pages/fund_details.py`: UI for managing symbols, classes, and compositions.
--   `data/summaries/`: Directory for periodic CSV snapshots of holdings.
--   `data/mappings/`: Persistent JSON files for user-defined metadata.
+-   `data/summaries/`: Flattened directory structure with account-specific folders (e.g., `Google_401K/`).
+-   `data/mappings/fund_information.json`: Unified persistent JSON file for symbols, asset classes, and compositions.
 -   `pyproject.toml`: Defines project metadata and dependencies.
 
 ### Testing
--   Currently, validation is performed manually through the Streamlit interface. 
--   **TODO:** Implement automated tests for the Polars data processing logic using `pytest`.
+-   Automated unit tests are implemented using `pytest` for the Polars data processing logic.
+-   **Run Unit Tests:** `uv run pytest --cov=src --cov-report=term-missing tests/`

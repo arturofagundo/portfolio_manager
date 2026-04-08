@@ -12,8 +12,15 @@ dependencies = [
 readme = "README.md"
 requires-python = ">=3.13"
 
+[project.scripts]
+test = "pytest --cov=src --cov-report=term-missing tests/"
+
 [tool.uv]
 managed = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
@@ -21,6 +28,9 @@ dev = [
     "pre-commit>=4.5.1",
     "ruff>=0.15.9",
     "pandas-stubs",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
 ]
 
 [tool.ruff]

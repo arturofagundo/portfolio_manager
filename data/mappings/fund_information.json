@@ -1,0 +1,76 @@
+{
+    "Vanguard Target Retirement 2035 Trust": {
+        "Symbol": "",
+        "Asset Class": "Domestic Equities",
+        "Composition": {
+            "Vanguard Total Stock Market Index Fund Institutional Plus Shares (VSMPX)": 0.395,
+            "Vanguard Total International Stock Index Fund Institutional Shares (VTSNX)": 0.285,
+            "Vanguard Total Bond Market II Index Fund Investor Shares (VTBIX)": 0.226,
+            "Vanguard Total International Bond II Index Fund Institutional Shares (VTLIX)": 0.094
+        }
+    },
+    "DFA Global Real Estate Securities Portfolio": {
+        "Symbol": "DFGEX",
+        "Asset Class": "Real Estate"
+    },
+    "SCHWAB FUNDAMENTAL INTL SMALL EQ INDEX": {
+        "Symbol": "SFILX",
+        "Asset Class": "Small-Cap Equities"
+    },
+    "Vanguard Real Estate Index Fund Institutional Shares": {
+        "Symbol": "VGSNX",
+        "Asset Class": "Real Estate"
+    },
+    "Vanguard Extended Market Index Fund Institutional Shares": {
+        "Symbol": "VIEIX",
+        "Asset Class": "Domestic Equities"
+    },
+    "Vanguard Total International Stock Index Fund Institutional Shares (VTSNX)": {
+        "Symbol": "VTSNX",
+        "Asset Class": "International Equities"
+    },
+    "Vanguard Institutional Total Bond Market Index Trust": {
+        "Symbol": "",
+        "Asset Class": "Taxable Bond"
+    },
+    "Vanguard Total Bond Market II Index Fund Investor Shares (VTBIX)": {
+        "Symbol": "VTBIX",
+        "Asset Class": "Taxable Bond"
+    },
+    "EARNEST Partners Smid Cap Core Fund Founders Class": {
+        "Symbol": "",
+        "Asset Class": "Mid-Cap Equities"
+    },
+    "Vanguard Emerging Markets Stock Index Fund Institutional Plus Shares": {
+        "Symbol": "VEMRX",
+        "Asset Class": "International Equities"
+    },
+    "Vanguard Total International Bond II Index Fund Institutional Shares (VTLIX)": {
+        "Symbol": "VTLIX",
+        "Asset Class": "Taxable Bond"
+    },
+    "Vanguard Total International Bond Index Fund Institutional Shares": {
+        "Symbol": "VTIFX",
+        "Asset Class": "Taxable Bond"
+    },
+    "Prudential Core Plus Bond Fund 15": {
+        "Symbol": "",
+        "Asset Class": "Taxable Bond"
+    },
+    "Vanguard Total Stock Market Index Fund Institutional Plus Shares (VSMPX)": {
+        "Symbol": "VSMPX",
+        "Asset Class": "Domestic Equities"
+    },
+    "Vanguard Total Bond Market Index Fund Institutional Shares": {
+        "Symbol": "VBTIX",
+        "Asset Class": "Taxable Bond"
+    },
+    "WASATCH MICROCAP": {
+        "Symbol": "WMICX",
+        "Asset Class": "Micro-Cap Equities"
+    },
+    "FDIC-INSURED DEPOSIT SWEEP": {
+        "Symbol": "CORE**",
+        "Asset Class": "Other/Cash"
+    }
+}
