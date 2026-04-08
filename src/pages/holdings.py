@@ -4,11 +4,11 @@ import altair as alt
 import polars as pl
 import streamlit as st
 
-from data_utils import clean_currency, get_latest_file, load_mappings
+from data_utils import FundInfo, clean_currency, get_latest_file, load_fund_info
 
 
 # --- LOADING LOGIC ---
-def load_401k_summary(file_path: str | None) -> pl.DataFrame | None:
+def load_401k_summary(file_path: str | None, account_name: str) -> pl.DataFrame | None:
     if not file_path:
         return None
     df = pl.read_csv(file_path, truncate_ragged_lines=True)
@@ -18,7 +18,7 @@ def load_401k_summary(file_path: str | None) -> pl.DataFrame | None:
             clean_currency(pl.col("Current balance")).alias("value"),
             clean_currency(pl.col("Quantity")).alias("quantity"),
             pl.lit("401K").alias("type"),
-            pl.lit("401K Account").alias("account"),
+            pl.lit(account_name).alias("account"),
             pl.col("Fund name").alias("investment"),
         ]
     )
@@ -47,9 +47,7 @@ def load_ira_summary(file_path: str | None) -> pl.DataFrame | None:
 # --- ALLOCATION LOGIC ---
 
 
-def expand_holdings(
-    df: pl.DataFrame, asset_map: dict[str, str], comp_map: dict[str, dict[str, float]]
-) -> pl.DataFrame:
+def expand_holdings(df: pl.DataFrame, fund_info: dict[str, FundInfo]) -> pl.DataFrame:
     """
     Recursively expand investments into their underlying asset classes.
     """
@@ -59,17 +57,22 @@ def expand_holdings(
         row_dict: dict[str, object], current_investment: str, current_value: float
     ) -> None:
         # 1. Check if fund has explicit composition
-        if current_investment in comp_map and comp_map[current_investment]:
-            for sub_fund, weight in comp_map[current_investment].items():
+        info = fund_info.get(current_investment)
+
+        if info and info.composition:
+            for sub_fund, weight in info.composition.items():
                 process_investment(row_dict, sub_fund, current_value * weight)
         else:
             # 2. Assign asset class
-            # Try to match mapping exactly or by partial string
             ac = "Other/Unclassified"
-            for key, val in asset_map.items():
-                if key.lower() in current_investment.lower():
-                    ac = val
-                    break
+            if info:
+                ac = info.asset_class
+            else:
+                # Fallback to partial match if not in map exactly
+                for name, data in fund_info.items():
+                    if name.lower() in current_investment.lower():
+                        ac = data.asset_class
+                        break
 
             new_row = row_dict.copy()
             new_row["investment_actual"] = current_investment
@@ -87,22 +90,39 @@ def expand_holdings(
 
 _ = st.title("💰 Portfolio Snapshot")
 
-asset_class_map: dict[str, str]
-fund_compositions: dict[str, dict[str, float]]
-symbol_map: dict[str, str]
-asset_class_map, fund_compositions, symbol_map = load_mappings()
+fund_info = load_fund_info()
 
-s_401k_path = get_latest_file("data/summaries/401K")
-s_ira_path = get_latest_file("data/summaries/IRA")
-
-df_401k = load_401k_summary(s_401k_path)
-df_ira = load_ira_summary(s_ira_path)
-
+# Dynamic account discovery
+summaries_dir = "data/summaries"
 all_holdings: list[pl.DataFrame] = []
-if df_401k is not None:
-    all_holdings.append(df_401k)
-if df_ira is not None:
-    all_holdings.append(df_ira)
+latest_dates: dict[str, str] = {}
+
+if os.path.exists(summaries_dir):
+    for account_dir in os.listdir(summaries_dir):
+        full_path = os.path.join(summaries_dir, account_dir)
+        if not os.path.isdir(full_path):
+            continue
+
+        latest_file = get_latest_file(full_path)
+        if not latest_file:
+            continue
+
+        # Determine type (401K vs IRA) based on directory name
+        is_ira = "IRA" in account_dir.upper()
+        acc_type = "IRA" if is_ira else "401K"
+
+        # Extract date for metrics
+        date_str = os.path.basename(latest_file).split("_")[0]
+        if acc_type not in latest_dates or date_str > latest_dates[acc_type]:
+            latest_dates[acc_type] = date_str
+
+        if is_ira:
+            df = load_ira_summary(latest_file)
+        else:
+            df = load_401k_summary(latest_file, account_dir.replace("_", " "))
+
+        if df is not None:
+            all_holdings.append(df)
 
 if not all_holdings:
     _ = st.warning("No summary data found.")
@@ -110,20 +130,14 @@ else:
     raw_combined = pl.concat(all_holdings)
 
     # Expand based on user mappings
-    combined_df = expand_holdings(raw_combined, asset_class_map, fund_compositions)
+    combined_df = expand_holdings(raw_combined, fund_info)
 
     total_value: float = float(combined_df.select(pl.col("value").sum()).item())  # type: ignore
 
     col1, col2, col3 = st.columns(3)
     _ = col1.metric("Total Net Worth", f"${total_value:,.2f}")
-    _ = col2.metric(
-        "Latest Update (401K)",
-        os.path.basename(s_401k_path).split("_")[0] if s_401k_path else "N/A",
-    )
-    _ = col3.metric(
-        "Latest Update (IRA)",
-        os.path.basename(s_ira_path).split("_")[0] if s_ira_path else "N/A",
-    )
+    _ = col2.metric("Latest 401K Update", latest_dates.get("401K", "N/A"))
+    _ = col3.metric("Latest IRA Update", latest_dates.get("IRA", "N/A"))
 
     _ = st.divider()
 
