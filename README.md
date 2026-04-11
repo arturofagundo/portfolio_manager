@@ -21,13 +21,49 @@ A high-performance Streamlit web application designed to manage, analyze, and vi
 
 ```text
 data/
-├── summaries/      # Account-specific folders containing holdings snapshots
-├── options/        # Institution-specific investment options
+├── summaries/      # Account-specific folders (e.g., Google_401K, Jump_401K)
+├── options/        # Institution-specific investment options (e.g., Google, Jump)
 └── mappings/       # Unified fund_information.json mapping file
 src/
 ├── app.py          # Main entry point and routing
 ├── data_utils.py   # Shared utilities and FundInfo dataclass
 └── pages/          # Individual application pages
+```
+
+## Data Schema
+
+Since the `data/` directory is excluded from version control for privacy, you must recreate the following structure for the application to function. **Sample files for each type are provided in `data/samples/` as a reference.**
+
+### 1. Account Summaries (`data/summaries/`)
+The app expects subdirectories for each account. The folder name identifies the account.
+- **401K Accounts**: Files should contain `YYYY-MM-DD` in the filename and use these columns:
+    - `Fund name`: Name of the investment.
+    - `Quantity`: Number of shares held.
+    - `Current balance`: Total value (currency string, e.g., "$1,234.56").
+- **IRA Accounts**: Files should contain `IRA` in the parent folder name and use these columns:
+    - `Description`: Name of the investment.
+    - `Account Name`: Specific sub-account name.
+    - `Quantity`: Number of shares held.
+    - `Current Value`: Total value (currency string).
+
+### 2. Investment Options (`data/options/`)
+Subdirectories containing `options.csv` files used for data discovery:
+- `Fund name`: Official name of the fund.
+- `Symbol`: Ticker symbol (optional).
+
+### 3. Fund Mappings (`data/mappings/fund_information.json`)
+A JSON file mapping fund names to metadata and compositions:
+```json
+{
+  "Fund Name": {
+    "Symbol": "TICKER",
+    "Asset Class": "Asset Category",
+    "Composition": {
+      "Underlying Fund A": 0.6,
+      "Underlying Fund B": 0.4
+    }
+  }
+}
 ```
 
 ## Setup and Installation
