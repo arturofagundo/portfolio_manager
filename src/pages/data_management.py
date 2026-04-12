@@ -1,10 +1,10 @@
 import os
 from datetime import date
-from typing import Protocol, cast
 
 import pandas as pd
 import polars as pl
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from data_utils import (
     FundInfo,
@@ -12,30 +12,14 @@ from data_utils import (
     get_latest_file,
     load_fund_info,
     save_fund_info,
+    validate_summary_csv,
 )
 
 
-class UploadedFileProto(Protocol):
-    def getbuffer(self) -> bytes: ...
-
-
-def save_uploaded_file(uploaded_file: UploadedFileProto, target_path: str) -> None:
+def save_uploaded_file(uploaded_file: UploadedFile, target_path: str) -> None:
     os.makedirs(os.path.dirname(target_path), exist_ok=True)
     with open(target_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-
-
-def validate_summary_csv(df: pl.DataFrame, acc_type: str) -> tuple[bool, str]:
-    cols = df.columns
-    if acc_type == "401K":
-        required = ["Fund name", "Quantity", "Current balance"]
-    else:  # IRA
-        required = ["Description", "Quantity", "Current Value"]
-
-    missing = [c for c in required if c not in cols]
-    if missing:
-        return False, f"Missing required columns: {', '.join(missing)}"
-    return True, ""
 
 
 # --- PAGE CONFIG ---
@@ -81,10 +65,12 @@ with tab1:
         df_to_save: pd.DataFrame | None = None
 
         if upload_choice == "Upload CSV":
-            summary_file = st.file_uploader("Upload provider export (CSV)", type="csv")
-            if summary_file:
+            summary_file_obj = st.file_uploader(
+                "Upload provider export (CSV)", type="csv"
+            )
+            if summary_file_obj:
                 try:
-                    df_temp = pd.read_csv(summary_file)
+                    df_temp = pd.read_csv(summary_file_obj)
                     st.success("File uploaded successfully!")
                     with st.expander("🔍 Preview Uploaded Data"):
                         st.dataframe(df_temp.head(10))
@@ -126,9 +112,7 @@ with tab1:
                     options_path = os.path.join(
                         "data", "options", str(new_acc_type), clean_name, "options.csv"
                     )
-                    save_uploaded_file(
-                        cast(UploadedFileProto, options_file_obj), options_path
-                    )
+                    save_uploaded_file(options_file_obj, options_path)
 
                 st.success(f"Successfully created {new_acc_name} {new_acc_type}!")
                 st.balloons()
@@ -227,9 +211,7 @@ with tab2:
             )
             if st.button("Overwrite Options"):
                 if new_options_file_obj:
-                    save_uploaded_file(
-                        cast(UploadedFileProto, new_options_file_obj), options_path
-                    )
+                    save_uploaded_file(new_options_file_obj, options_path)
                     st.success("Updated options.")
                     st.rerun()
 
