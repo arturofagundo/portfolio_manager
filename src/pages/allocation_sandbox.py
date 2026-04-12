@@ -98,19 +98,41 @@ else:
 
         col_left, col_right = st.columns(2)
 
-        # Cast Any from mu.min()
+        # Optimization Goal Selection
+        with col_left:
+            opt_goal = st.radio(
+                "Optimization Goal",
+                ["Minimize Risk for Target Return", "Maximize Return for Target Risk"],
+                help="Choose whether you want to set a specific return target or a specific risk level.",
+            )
+
+        # Avoid reportAny by casting result of min/max
         min_ret = float(cast(float, mu.min()))
         max_ret = float(cast(float, mu.max()))
+        min_risk = float(cast(float, sigmas.min()))
+        max_risk = float(cast(float, sigmas.max()))
 
         with col_left:
-            target_return = st.slider(
-                "Target Expected Return",
-                min_value=min_ret,
-                max_value=max_ret,
-                value=max(min_ret, min(max_ret, 0.07)),  # Default to 7% if possible
-                format="%.3f",
-                step=0.001,
-            )
+            if opt_goal == "Minimize Risk for Target Return":
+                target_val = st.slider(
+                    "Target Expected Return",
+                    min_value=min_ret,
+                    max_value=max_ret,
+                    value=max(min_ret, min(max_ret, 0.07)),  # Default to 7% if possible
+                    format="%.3f",
+                    step=0.001,
+                )
+            else:
+                target_val = st.slider(
+                    "Target Portfolio Risk (Std Dev)",
+                    min_value=min_risk,
+                    max_value=max_risk,
+                    value=max(
+                        min_risk, min(max_risk, 0.15)
+                    ),  # Default to 15% if possible
+                    format="%.3f",
+                    step=0.001,
+                )
 
         with col_right:
             min_weight = (
@@ -211,8 +233,14 @@ else:
                 )
 
         try:
-            # Minimize risk for a given return
-            optimal_weights_raw = ef.efficient_return(target_return)
+            # Optimize based on chosen goal
+            if opt_goal == "Minimize Risk for Target Return":
+                optimal_weights_raw = ef.efficient_return(target_val)
+                target_desc = f"{target_val:.2%} Return"
+            else:
+                optimal_weights_raw = ef.efficient_risk(target_val)
+                target_desc = f"{target_val:.2%} Risk"
+
             # Ensure keys are strings
             optimal_weights: dict[str, float] = {
                 str(k): float(v) for k, v in optimal_weights_raw.items()
@@ -224,11 +252,17 @@ else:
             # 5. Display Comparison
             st.divider()
             st.subheader(
-                f"Comparison: Current vs. Optimal Allocation for {target_return:.2%} Return"
+                f"Comparison: Current vs. Optimal Allocation for {target_desc}"
             )
 
             col1, col2 = st.columns(2)
-            col1.metric("Optimal Portfolio Risk (Std Dev)", f"{risk:.2%}")
+            if opt_goal == "Minimize Risk for Target Return":
+                # User set return, show resulting risk
+                col1.metric("Optimal Portfolio Risk (Std Dev)", f"{risk:.2%}")
+            else:
+                # User set risk, show resulting return
+                col1.metric("Optimal Portfolio Expected Return", f"{ret:.2%}")
+
             col2.metric(
                 "Optimal Portfolio Sharpe Ratio",
                 f"{sharpe:.2f}",
@@ -329,9 +363,9 @@ else:
                             (pl.col("account") == acc)
                             & (pl.col("asset_class") == asset)
                         )
-                        match_sum_val = cast(float | None, match["value"].item())
-                        current_total_val = (
-                            float(match_sum_val) if match_sum_val is not None else 0.0
+                        # Safer extraction: sum of value column (0 if empty)
+                        current_total_val = float(
+                            match.select(pl.col("value")).sum().item() or 0.0
                         )
 
                         delta = target_val - current_total_val
@@ -356,9 +390,14 @@ else:
                                 )
                             else:
                                 # List available funds from menu
-                                funds_str = ", ".join(
-                                    menu.get(asset, ["No specific fund mapped"])
-                                )
+                                available_funds = menu.get(asset, [])
+                                if available_funds:
+                                    funds_str = ", ".join(available_funds)
+                                else:
+                                    # This might happen if an asset class is allowed but no specific fund is mapped yet
+                                    funds_str = (
+                                        "No specific fund found in options mapping"
+                                    )
 
                             transactions.append(
                                 {
@@ -371,10 +410,9 @@ else:
                             )
             else:
                 # Global optimization only
-                item_total_val = cast(
-                    float | None, combined_df.select(pl.col("value").sum()).item()
+                total_val = float(
+                    combined_df.select(pl.col("value").sum()).item() or 0.0
                 )
-                total_val = float(item_total_val) if item_total_val is not None else 0.0
                 curr_vals_global = combined_df.group_by("asset_class").agg(
                     pl.col("value").sum()
                 )
@@ -383,9 +421,8 @@ else:
                     target_val = optimal_weights.get(asset, 0.0) * total_val
 
                     match = curr_vals_global.filter(pl.col("asset_class") == asset)
-                    match_item_val = cast(float | None, match["value"].item())
-                    current_val = (
-                        float(match_item_val) if match_item_val is not None else 0.0
+                    current_val = float(
+                        match.select(pl.col("value")).sum().item() or 0.0
                     )
 
                     delta = target_val - current_val
