@@ -47,6 +47,7 @@ The project follows a modular multi-page Streamlit architecture. Business logic 
 -   `src/pages/holdings.py`: Portfolio snapshot and visualization logic.
 -   `src/pages/fund_details.py`: UI for managing symbols, classes, and compositions.
 -   `data/summaries/`: Flattened directory structure with account-specific folders (e.g., `Google_401K/`).
+-   `data/asset_classes/`: Stores asset class-specific metrics, including correlation matrices and risk/return profiles.
 -   `data/mappings/fund_information.json`: Unified persistent JSON file for symbols, asset classes, and compositions.
 -   `pyproject.toml`: Defines project metadata and dependencies.
 
