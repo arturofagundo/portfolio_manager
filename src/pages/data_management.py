@@ -28,19 +28,35 @@ st.markdown(
     "Easily manage your portfolio data structure, from adding new accounts to fine-tuning individual holdings."
 )
 
-tab1, tab2, tab3 = st.tabs(
+# --- NAVIGATION STATE ---
+if "dm_active_tab" not in st.session_state:
+    st.session_state.dm_active_tab = "🆕 Add New Account"
+
+# Segmented control for tabs
+active_tab = st.radio(
+    "Navigation",
     [
         "🆕 Add New Account",
         "🔄 Update Investment Options",
         "📄 Update Individual Holdings",
-    ]
+    ],
+    index=[
+        "🆕 Add New Account",
+        "🔄 Update Investment Options",
+        "📄 Update Individual Holdings",
+    ].index(st.session_state.dm_active_tab),
+    horizontal=True,
+    label_visibility="collapsed",
 )
+st.session_state.dm_active_tab = active_tab
+
+st.write("---")
 
 # Shared data
 fund_info = load_fund_info()
 existing_accounts = get_all_account_names()
 
-with tab1:
+if active_tab == "🆕 Add New Account":
     st.header("Add a New Account")
 
     st.markdown("#### Step 1: Account Identity")
@@ -115,12 +131,20 @@ with tab1:
                     save_uploaded_file(options_file_obj, options_path)
 
                 st.success(f"Successfully created {new_acc_name} {new_acc_type}!")
+
+                # Redirect to Update Individual Holdings if template was used
+                if upload_choice == "Start with Empty Template":
+                    st.session_state.dm_active_tab = "📄 Update Individual Holdings"
+                    st.session_state.selected_edit_acc = (
+                        f"{new_acc_name.strip()} {new_acc_type}"
+                    )
+
                 st.balloons()
                 st.rerun()
             else:
                 st.error("Please provide holdings data via upload or template.")
 
-with tab2:
+elif active_tab == "🔄 Update Investment Options":
     st.header("Update Investment Options")
     st.info("Update the list of available funds for an existing account.")
 
@@ -215,16 +239,27 @@ with tab2:
                     st.success("Updated options.")
                     st.rerun()
 
-with tab3:
+elif active_tab == "📄 Update Individual Holdings":
     st.header("Update Individual Holdings")
     st.markdown("Manually edit, add, or remove holdings for a specific account.")
 
     if not existing_accounts:
         st.warning("No existing accounts found.")
     else:
+        # Check if we have a manually tracked selection
+        if "selected_edit_acc" not in st.session_state:
+            st.session_state.selected_edit_acc = existing_accounts[0]
+
+        # Use index to control selection without key collision
+        default_index = 0
+        if st.session_state.selected_edit_acc in existing_accounts:
+            default_index = existing_accounts.index(st.session_state.selected_edit_acc)
+
         edit_acc = st.selectbox(
-            "Select Account to Edit", existing_accounts, key="edit_acc_select"
+            "Select Account to Edit", existing_accounts, index=default_index
         )
+        # Update our manual state whenever the user interacts with the selectbox
+        st.session_state.selected_edit_acc = edit_acc
 
         if edit_acc:
             # Find the latest file
@@ -262,6 +297,64 @@ with tab3:
                     edited_df.to_csv(target_file, index=False)
                     st.success(f"Saved changes to {os.path.basename(target_file)}")
                     st.balloons()
+
+            st.write("---")
+            with st.expander("🛠️ Advanced: Rename Account"):
+                st.warning(
+                    "Renaming will update all history files and investment option folders."
+                )
+                new_name_input = st.text_input(
+                    "New Account Name", placeholder="e.g. Google New"
+                )
+                if st.button("Confirm Rename"):
+                    if new_name_input:
+                        try:
+                            # 1. Parse current info
+                            # folder_name is e.g. "Amazon_401K"
+                            old_clean_name, acc_type = folder_name.rsplit("_", 1)
+                            new_clean_name = new_name_input.strip().replace(" ", "_")
+                            new_folder_name = f"{new_clean_name}_{acc_type}"
+
+                            # 2. Rename Summary Directory
+                            new_acc_dir = os.path.join(
+                                "data", "summaries", new_folder_name
+                            )
+                            if os.path.exists(new_acc_dir):
+                                st.error(f"Account {new_name_input} already exists!")
+                            else:
+                                # Rename summary folder
+                                os.rename(acc_dir, new_acc_dir)
+
+                                # Rename all files inside summary folder to match new name
+                                for f in os.listdir(new_acc_dir):
+                                    if f.endswith(".csv") and old_clean_name in f:
+                                        old_f_path = os.path.join(new_acc_dir, f)
+                                        new_f_path = os.path.join(
+                                            new_acc_dir,
+                                            f.replace(old_clean_name, new_clean_name),
+                                        )
+                                        os.rename(old_f_path, new_f_path)
+
+                                # 3. Rename Options Directory
+                                old_options_dir = os.path.join(
+                                    "data", "options", acc_type, old_clean_name
+                                )
+                                new_options_dir = os.path.join(
+                                    "data", "options", acc_type, new_clean_name
+                                )
+                                if os.path.exists(old_options_dir):
+                                    os.rename(old_options_dir, new_options_dir)
+
+                                st.success(f"Renamed to {new_name_input}")
+                                # Safely update the manual tracking variable
+                                st.session_state.selected_edit_acc = (
+                                    f"{new_name_input.strip()} {acc_type}"
+                                )
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Error renaming: {e}")
+                    else:
+                        st.error("Please enter a new name.")
 
 st.divider()
 with st.expander("ℹ️ About the Data Structure"):

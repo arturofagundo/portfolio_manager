@@ -243,10 +243,10 @@ def get_account_menus(
             folder_name = os.path.basename(os.path.dirname(f))
             # Match if folder name is in account name (e.g., "Google" in "Google 401K")
             # OR if account name is in folder name (e.g., "Arturo ROTH IRA" matches folder "Arturo_ROTH_IRA")
-            if (
-                folder_name.lower() in account.lower()
-                or account.lower().replace(" ", "_") in folder_name.lower()
-            ):
+            folder_clean = folder_name.lower().replace("_", " ")
+            acc_clean = account.lower().replace("_", " ")
+
+            if folder_clean in acc_clean or acc_clean in folder_clean:
                 matched_any = True
                 try:
                     df = pl.read_csv(f, truncate_ragged_lines=True)
@@ -255,8 +255,15 @@ def get_account_menus(
                     )
                     for fund_name in cast(list[object], df[name_col].to_list()):
                         fn: str = str(fund_name)
-
                         info = fund_info.get(fn)
+
+                        # Fallback: try case-insensitive or substring match if exact fails
+                        if not info:
+                            for k, v in fund_info.items():
+                                if fn.lower() in k.lower() or k.lower() in fn.lower():
+                                    info = v
+                                    break
+
                         if info:
                             # Handle composite funds vs single asset funds
                             classes: list[str] = []
