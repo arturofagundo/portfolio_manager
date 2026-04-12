@@ -23,6 +23,7 @@ A high-performance Streamlit web application designed to manage, analyze, and vi
 data/
 ├── summaries/      # Account-specific folders (e.g., Google_401K, Jump_401K)
 ├── options/        # Institution-specific investment options (e.g., Google, Jump)
+├── asset_classes/  # Asset class metrics (correlation, risk, return)
 └── mappings/       # Unified fund_information.json mapping file
 src/
 ├── app.py          # Main entry point and routing
@@ -100,6 +101,14 @@ The project uses **Ruff** for linting/formatting and **Basedpyright** for static
 
 - **Run Linting:** `uv run ruff check .`
 - **Run Type Checker:** `uv run basedpyright`
+- **Run Unit Tests:** `uv run pytest --cov=src --cov-report=term-missing tests/`
+
+### Pre-commit Hooks
+Pre-commit hooks are configured to run locally via `uv`. To install them:
+```bash
+uv run pre-commit install
+```
+ run basedpyright`
 - **Run Unit Tests:** `uv run pytest --cov=src --cov-report=term-missing tests/`
 
 ### Pre-commit Hooks

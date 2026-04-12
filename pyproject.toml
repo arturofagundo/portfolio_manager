@@ -8,6 +8,9 @@ dependencies = [
     "pandas",
     "requests>=2.33.1",
     "beautifulsoup4>=4.14.3",
+    "numpy>=2.4.4",
+    "altair>=6.0.0",
+    "pyportfolioopt>=1.6.0",
 ]
 readme = "README.md"
 requires-python = ">=3.13"
