@@ -135,6 +135,20 @@ def get_all_holdings() -> tuple[pl.DataFrame, dict[str, str]]:
     return pl.concat(all_holdings), latest_dates
 
 
+def get_all_account_names() -> list[str]:
+    """Returns all account names found in data/summaries based on folder names."""
+    summaries_dir = "data/summaries"
+    if not os.path.exists(summaries_dir):
+        return []
+    return sorted(
+        [
+            d.replace("_", " ")
+            for d in os.listdir(summaries_dir)
+            if os.path.isdir(os.path.join(summaries_dir, d))
+        ]
+    )
+
+
 def expand_holdings(df: pl.DataFrame, fund_info: dict[str, FundInfo]) -> pl.DataFrame:
     """
     Recursively expand investments into their underlying asset classes.
@@ -175,6 +189,20 @@ def expand_holdings(df: pl.DataFrame, fund_info: dict[str, FundInfo]) -> pl.Data
         return pl.DataFrame()
 
     return pl.from_dicts(rows)
+
+
+def validate_summary_csv(df: pl.DataFrame, acc_type: str) -> tuple[bool, str]:
+    """Validates that a DataFrame has the required columns for its account type."""
+    cols = df.columns
+    if acc_type == "401K":
+        required = ["Fund name", "Quantity", "Current balance"]
+    else:  # IRA
+        required = ["Description", "Quantity", "Current Value"]
+
+    missing = [c for c in required if c not in cols]
+    if missing:
+        return False, f"Missing required columns: {', '.join(missing)}"
+    return True, ""
 
 
 # --- ACCOUNT CONSTRAINTS ---
