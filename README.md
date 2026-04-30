@@ -67,6 +67,20 @@ A JSON file mapping fund names to metadata and compositions:
 }
 ```
 
+## Asset Class Metrics
+
+The application uses historical nominal returns and standard deviations for portfolio analysis, located in `data/asset_classes/returns.csv`.
+
+**Current Methodology:** Historical Nominal Returns (30-year horizon, approx. 1996–2025).
+
+**Sources:**
+- **Domestic Equities (S&P 500):** Fidelity / S&P Global.
+- **International Equities (MSCI ACWI ex-US):** MSCI / Thoughtful Finance.
+- **Mid-Cap (S&P MidCap 400) & Small-Cap (S&P SmallCap 600):** S&P Global / YCharts.
+- **Micro-Cap (CRSP 9-10 / DFSCX):** Dimensional Fund Advisors / Center for Research in Security Prices.
+- **Real Estate (FTSE NAREIT All Equity):** Nareit / FTSE Russell.
+- **Bonds (Bloomberg US Aggregate):** Bloomberg / Investing.com.
+
 ## Setup and Installation
 
 This project uses [uv](https://github.com/astral-sh/uv) for modern Python dependency management.

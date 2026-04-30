@@ -1,0 +1,8 @@
+,Domestic Equities,International Equities,Mid-Cap,Small-Cap,Micro-Cap,Real Estate,Bonds
+Domestic Equities,1,0.82,0.95,0.91,0.91,0.65,-0.1
+International Equities,0.82,1,0.8,0.75,0.75,0.58,-0.05
+Mid-Cap,0.95,0.8,1,0.92,0.88,0.62,-0.12
+Small-Cap,0.91,0.75,0.92,1,0.96,0.59,-0.15
+Micro-Cap,0.91,0.75,0.88,0.96,1,0.55,-0.15
+Real Estate,0.65,0.58,0.62,0.59,0.55,1,0.12
+Bonds,-0.1,-0.05,-0.12,-0.15,-0.15,0.12,1
