@@ -195,7 +195,9 @@ cython_debug/
 .pypirc
 
 # Ignore all local data files
-data/
+data/*
+!data/asset_classes/
+!data/samples/
 
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
