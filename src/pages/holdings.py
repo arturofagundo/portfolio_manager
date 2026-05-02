@@ -1,3 +1,5 @@
+from typing import cast
+
 import altair as alt
 import polars as pl
 import streamlit as st
@@ -54,10 +56,12 @@ else:
     c1, c2 = st.columns([1, 1])
     with c1:
         pdf = summary_table.to_pandas()
-        _ = st.dataframe(
+        selection = st.dataframe(
             pdf.style.format({"Total Value": "${:,.2f}", "% of Portfolio": "{:.2f}%"}),
             use_container_width=True,
             hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
         )
     with c2:
         # Create a pie chart using Altair
@@ -75,6 +79,54 @@ else:
         )
 
         _ = st.altair_chart(chart, use_container_width=True)
+
+    selected_rows = selection.get("selection", {}).get("rows", [])
+    if agg_dim == "Account" and selected_rows:
+        selected_index = int(selected_rows[0])
+        # The column name in the summary table matches the group_col ('account')
+        selected_account_val = cast(object, pdf.iloc[selected_index]["account"])
+        selected_account: str = str(selected_account_val)
+
+        st.subheader(f"📂 Account Summary: {selected_account}")
+
+        # Filter for the selected account
+        acc_df = combined_df.filter(pl.col("account") == selected_account)
+        acc_total = cast(float, acc_df.select(pl.col("value").sum()).item())
+
+        # Group by investment and asset class
+        # Note: If multiple rows exist for the same investment (due to expansion),
+        # we check if any of them were marked as composite.
+        acc_summary = (
+            acc_df.group_by(["investment"])
+            .agg(
+                [
+                    pl.col("asset_class").first(),
+                    pl.col("value").sum().alias("Value"),
+                    pl.col("is_composite").any().alias("is_comp"),
+                ]
+            )
+            .with_columns(
+                (pl.col("Value") / acc_total * 100).alias("% of Account"),
+                pl.when(pl.col("is_comp"))
+                .then(pl.lit("Composite Fund"))
+                .otherwise(pl.col("asset_class"))
+                .alias("Asset Class"),
+            )
+            .rename({"investment": "Investment"})
+            .sort("Value", descending=True)
+        )
+
+        st.dataframe(
+            acc_summary.select(["Investment", "Asset Class", "Value", "% of Account"]),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Value": st.column_config.NumberColumn("Value", format="$%,.2f"),
+                "% of Account": st.column_config.NumberColumn(
+                    "% of Account", format="%.2f%%"
+                ),
+            },
+        )
 
     _ = st.divider()
     with st.expander("🔍 View All Calculated Allocations"):

@@ -4,18 +4,16 @@ A high-performance Streamlit web application designed to manage, analyze, and vi
 
 ## Features
 
-- **Multi-Page Dashboard**: Dedicated views for portfolio snapshots and data management.
-- **Polars-Powered Engine**: Ultra-fast data processing for combining and aggregating multiple CSV files.
+- **Multi-Page Dashboard**: Dedicated views for portfolio snapshots, metrics, and simulations.
+- **Projected Growth Simulation**: Monte-Carlo simulation (500 paths) with quarterly rebalancing, inflation-adjusted contributions, and Mean-Variance Optimization (MVO).
+- **Allocation Sandbox**: Advanced asset allocation tool with account-level constraints and rebalancing transaction recommendations.
 - **Portfolio Snapshot**:
-    - **Dynamic Account Discovery**: Automatically loads and aggregates data from account-specific directories (e.g., `Google_401K`, `Jump_401K`).
-    - **Latest Status**: Displays update dates for both 401K and IRA accounts.
-    - Interactive breakdowns by **Account**, **Asset Class**, or **Investment**.
-    - Rich visualizations using **Altair pie charts**.
+    - **Dynamic Account Discovery**: Automatically loads and aggregates data from account-specific directories.
+    - **Interactive Summary**: Drill-down into specific accounts to see detailed holdings and asset classes.
     - Recursive fund expansion (splitting composite funds into underlying assets).
 - **Fund Details Management**:
     - **Unified Fund Metadata**: Single point of truth for fund symbols, asset classes, and compositions via `fund_information.json`.
     - **Complex Compositions**: Define underlying sub-funds and weights for target-date or multi-asset funds.
-    - **Data Discovery**: Automatic pre-population of symbols and fund names from your CSV data.
 
 ## Project Structure
 

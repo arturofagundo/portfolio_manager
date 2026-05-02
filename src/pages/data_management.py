@@ -273,11 +273,17 @@ elif active_tab == "📄 Update Individual Holdings":
                 st.caption(f"Editing latest file: `{os.path.basename(latest_file)}`")
                 df_to_edit = pd.read_csv(latest_file)
 
+                # Hide specific columns from display if they exist
+                column_config = {}
+                if "Contributions mix" in df_to_edit.columns:
+                    column_config["Contributions mix"] = None
+
                 edited_df = st.data_editor(
                     df_to_edit,
                     num_rows="dynamic",
                     use_container_width=True,
                     key="holdings_editor",
+                    column_config=column_config,
                 )
 
                 col_s1, col_s2 = st.columns([1, 3])

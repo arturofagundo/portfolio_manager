@@ -156,14 +156,20 @@ def expand_holdings(df: pl.DataFrame, fund_info: dict[str, FundInfo]) -> pl.Data
     rows: list[dict[str, object]] = []
 
     def process_investment(
-        row_dict: dict[str, object], current_investment: str, current_value: float
+        row_dict: dict[str, object],
+        current_investment: str,
+        current_value: float,
+        is_top_level: bool = True,
     ) -> None:
         # 1. Check if fund has explicit composition
         info = fund_info.get(current_investment)
 
         if info and info.composition:
             for sub_fund, weight in info.composition.items():
-                process_investment(row_dict, sub_fund, current_value * weight)
+                # When expanding a composite fund, we mark it as such
+                process_investment(
+                    row_dict, sub_fund, current_value * weight, is_top_level=False
+                )
         else:
             # 2. Assign asset class
             ac = "Other/Unclassified"
@@ -180,6 +186,8 @@ def expand_holdings(df: pl.DataFrame, fund_info: dict[str, FundInfo]) -> pl.Data
             new_row["investment_actual"] = current_investment
             new_row["asset_class"] = ac
             new_row["value"] = current_value
+            # Mark as composite if the top-level investment name differs from the leaf investment
+            new_row["is_composite"] = row_dict["investment"] != current_investment
             rows.append(new_row)
 
     for row in df.to_dicts():

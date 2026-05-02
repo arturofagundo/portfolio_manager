@@ -439,10 +439,32 @@ else:
 
             if transactions:
                 trans_df = pd.DataFrame(transactions)
+
+                # Sort to ensure SELLs come before BUYs within each account for the running balance
+                trans_df = trans_df.sort_values(
+                    ["Account", "Action"], ascending=[True, False]
+                )
+
+                def calc_cash_flow(row: pd.Series) -> float:
+                    amt = float(cast(float, row["Amount"]))
+                    return amt if cast(str, row["Action"]) == "SELL" else -amt
+
+                # Calculate Cash Flow per transaction
+                # SELL generates cash (+), BUY consumes cash (-)
+                trans_df["Cash Flow"] = trans_df.apply(calc_cash_flow, axis=1)
+
+                # Calculate Running Balance per Account
+                trans_df["Running Balance"] = trans_df.groupby("Account")[
+                    "Cash Flow"
+                ].cumsum()
+
+                # Drop the helper column
+                display_df = trans_df.drop(columns=["Cash Flow"])
+
                 st.dataframe(
-                    trans_df.sort_values(
-                        ["Account", "Action"], ascending=[True, False]
-                    ).style.format({"Amount": "${:,.2f}"}),
+                    display_df.style.format(
+                        {"Amount": "${:,.2f}", "Running Balance": "${:,.2f}"}
+                    ),
                     hide_index=True,
                     use_container_width=True,
                 )

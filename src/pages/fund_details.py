@@ -67,17 +67,15 @@ with tab1:
         with col2:
             asset_classes = [
                 "Domestic Equities",
-                "Large-Cap Equities",
-                "Mid-Cap Equities",
-                "Small-Cap Equities",
-                "Micro-Cap Equities",
-                "Value Equities",
-                "Growth Equities",
                 "International Equities",
-                "Taxable Bond",
-                "Multi-Asset",
+                "Mid-Cap",
+                "Small-Cap",
+                "Micro-Cap",
+                "Bonds",
                 "Real Estate",
+                "Multi-Asset",
                 "Other/Cash",
+                "Other/Unclassified",
             ]
             current_ac = info.asset_class
             selected_ac = st.selectbox(
@@ -103,17 +101,15 @@ with tab1:
 
     asset_classes = [
         "Domestic Equities",
-        "Large-Cap Equities",
-        "Mid-Cap Equities",
-        "Small-Cap Equities",
-        "Micro-Cap Equities",
-        "Value Equities",
-        "Growth Equities",
         "International Equities",
-        "Taxable Bond",
-        "Multi-Asset",
+        "Mid-Cap",
+        "Small-Cap",
+        "Micro-Cap",
+        "Bonds",
         "Real Estate",
+        "Multi-Asset",
         "Other/Cash",
+        "Other/Unclassified",
     ]
 
     all_mapped_names = sorted(fund_map.keys())
