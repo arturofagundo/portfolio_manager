@@ -35,9 +35,10 @@ def calculate_portfolio_metrics(
     known_portfolio = portfolio_agg.filter(pl.col("asset_class").is_in(asset_classes))
     known_value = cast(float, known_portfolio.select(pl.col("value").sum()).item())
 
-    if known_value < total_value:
+    unclassified_ratio = (total_value - known_value) / total_value
+    if unclassified_ratio >= 0.0005:  # Only warn if it's at least 0.1% when rounded
         st.warning(
-            f"Some assets ({(total_value - known_value) / total_value:.1%} of portfolio) "
+            f"Some assets ({unclassified_ratio:.1%} of portfolio) "
             "are in unclassified or unknown asset classes and are excluded from metrics."
         )
 

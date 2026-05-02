@@ -4,19 +4,22 @@ This project is a Streamlit-based web application designed for high-performance 
 
 ## Project Overview
 
--   **Purpose:** To provide a user-friendly interface for uploading, combining, and analyzing multiple CSV files.
+-   **Purpose:** To provide a user-friendly interface for managing, analyzing, and projecting financial holdings.
 -   **Core Technologies:**
     -   **Streamlit:** Frontend framework for the web interface.
-    -   **Polars:** Fast DataFrame library used for data manipulation and aggregation.
-    -   **uv:** Modern Python package manager used for dependency management and project synchronization.
-    -   **Ruff:** Fast Python linter and formatter.
-    -   **Basedpyright:** Static type checker for Python.
-    -   **Pre-commit:** Framework for managing and maintaining multi-language pre-commit hooks.
-    -   **Pandas:** Used as a compatibility layer for Streamlit's data display components.
+    -   **Polars:** High-performance DataFrame library for core data manipulation.
+    -   **cvxpy & PyPortfolioOpt:** Optimization engines for Mean-Variance Optimization (MVO).
+    -   **uv:** Modern Python package manager for dependency and project synchronization.
+    -   **Altair:** Declarative visualization library for charts and simulations.
 
 ## Architecture
 
-The project follows a modular multi-page Streamlit architecture. Business logic and data transformation utilities are centralized in `src/data_utils.py`, while individual views are isolated in the `src/pages/` directory.
+The project follows a modular multi-page Streamlit architecture. Business logic is centralized in `src/data_utils.py`, while feature-specific logic is isolated in the `src/pages/` directory.
+
+### Key Pages
+-   **Portfolio Snapshot (`holdings.py`):** Interactive overview of current holdings with account-level drill-downs and composite fund identification (italics).
+-   **Projected Growth (`project_growth.py`):** Monte-Carlo simulation (500 paths) with MVO, quarterly rebalancing, and inflation-adjusted contributions.
+-   **Allocation Sandbox (`allocation_sandbox.py`):** MVO-based rebalancing tool with account-level constraints and running balance transaction logs.
 
 ## Building and Running
 
@@ -29,28 +32,23 @@ The project follows a modular multi-page Streamlit architecture. Business logic 
 -   **Run Application:** `uv run streamlit run src/app.py`
 -   **Linting (Ruff):** `uv run ruff check .`
 -   **Type Checking (Basedpyright):** `uv run basedpyright`
--   **Pre-commit Install:** `uv run pre-commit install`
--   **Run Pre-commit on All Files:** `uv run pre-commit run --all-files`
--   **Update Dependencies:** `uv add <package>` or `uv remove <package>`
 
 ## Development Conventions
 
 ### Coding Style
--   **Polars-First:** Always prefer Polars expressions (`pl.col(...)`) over manual Python loops or Pandas for data transformations to ensure maximum performance.
--   **Diagonal Concatenation:** When combining multiple CSVs, use `pl.concat(..., how="diagonal")` to handle varying schemas gracefully.
--   **Recursive Expansion:** Complex funds (e.g., target-date funds) should be expanded into their constituent assets using the shared expansion logic in `holdings.py`, powered by the unified `FundInfo` mapping.
--   **Multi-Account Support:** The system dynamically discovers account-specific subdirectories in `data/summaries/` and aggregates the latest data for each.
+-   **Optimization-First:** Use `cvxpy` for rebalancing and allocation logic. Support both unconstrained and account-constrained (menu-restricted) modes.
+-   **Probabilistic Projection:** Monte-Carlo simulations should use multivariate normal distributions based on the historical metrics in `data/asset_classes/`.
+-   **Recursive Expansion:** Composite funds (e.g., Target Date funds) are expanded into underlying assets using `data_utils.expand_holdings`.
+-   **Italicized Composites:** In UI tables, composite funds are identified with italics in the Asset Class column for clarity.
+
+### Data Privacy & Security
+-   **Selective Tracking:** The `.gitignore` uses a `data/*` + `!subdirectory/` pattern to allow tracking of non-sensitive metrics (`asset_classes`, `mappings`) while strictly ignoring personal balances (`summaries`, `options`).
+-   **Asset Metrics:** Historical nominal returns (1996–2025) are the default for all projections.
 
 ### Project Structure
--   `src/app.py`: Main router using `st.navigation`.
--   `src/data_utils.py`: Centralized Polars logic and mapping I/O; defines the `FundInfo` dataclass.
--   `src/pages/holdings.py`: Portfolio snapshot and visualization logic.
--   `src/pages/fund_details.py`: UI for managing symbols, classes, and compositions.
--   `data/summaries/`: Flattened directory structure with account-specific folders (e.g., `Google_401K/`).
--   `data/asset_classes/`: Stores asset class-specific metrics, including correlation matrices and risk/return profiles.
--   `data/mappings/fund_information.json`: Unified persistent JSON file for symbols, asset classes, and compositions.
--   `pyproject.toml`: Defines project metadata and dependencies.
+-   `src/app.py`: Main router with logical grouping (Main vs. Analysis & Setup).
+-   `data/asset_classes/`: Stores `returns.csv` (Expected Return/Std Dev) and `correlation.csv`.
+-   `data/mappings/fund_information.json`: Local mapping for symbols, asset classes, and compositions.
 
 ### Testing
--   Automated unit tests are implemented using `pytest` for the Polars data processing logic.
 -   **Run Unit Tests:** `uv run pytest --cov=src --cov-report=term-missing tests/`
