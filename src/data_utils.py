@@ -63,14 +63,22 @@ def load_401k_summary(file_path: str | None, account_name: str) -> pl.DataFrame 
     if not file_path:
         return None
     df = pl.read_csv(file_path, truncate_ragged_lines=True)
-    df = df.filter(pl.col("Quantity").is_not_null() & (pl.col("Quantity") != ""))
+    df = df.filter(
+        pl.col("Quantity").cast(pl.String).is_not_null()
+        & (pl.col("Quantity").cast(pl.String) != "")
+    )
+    # Handle different column names for value and investment
+    value_col = (
+        "Current balance" if "Current balance" in df.columns else "Current Value"
+    )
+    investment_col = "Fund name" if "Fund name" in df.columns else "Description"
     df = df.with_columns(
         [
-            clean_currency(pl.col("Current balance")).alias("value"),
+            clean_currency(pl.col(value_col)).alias("value"),
             clean_currency(pl.col("Quantity")).alias("quantity"),
             pl.lit("401K").alias("type"),
             pl.lit(account_name).alias("account"),
-            pl.col("Fund name").alias("investment"),
+            pl.col(investment_col).alias("investment"),
         ]
     )
     return df.select(["type", "account", "investment", "value", "quantity"])

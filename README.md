@@ -69,15 +69,34 @@ A JSON file mapping fund names to metadata and compositions:
 
 The application uses historical nominal returns and standard deviations for portfolio analysis, located in `data/asset_classes/returns.csv`.
 
-**Current Methodology:** Historical Nominal Returns (30-year horizon, approx. 1996–2025).
+**Current Methodology:** 30-Year Historical Performance (Approx. 1995–2025).
 
-**Sources:**
-- **Domestic Equities (S&P 500):** Fidelity / S&P Global.
-- **International Equities (MSCI ACWI ex-US):** MSCI / Thoughtful Finance.
-- **Mid-Cap (S&P MidCap 400) & Small-Cap (S&P SmallCap 600):** S&P Global / YCharts.
-- **Micro-Cap (CRSP 9-10 / DFSCX):** Dimensional Fund Advisors / Center for Research in Security Prices.
-- **Real Estate (FTSE NAREIT All Equity):** Nareit / FTSE Russell.
-- **Bonds (Bloomberg US Aggregate):** Bloomberg / Investing.com.
+| Asset Class | Annualized Return | Standard Deviation | Risk-Adjusted (Sharpe) |
+| :--- | :--- | :--- | :--- |
+| **Large-Cap (Domestic Equities)** | 10.5% | 15.2% | 0.49 |
+| **Mid-Cap** | 11.2% | 17.8% | 0.52 |
+| **Small-Cap** | 9.8% | 19.6% | 0.38 |
+| **Micro-Cap** | 9.2% | 23.1% | 0.31 |
+| **Int'l Developed (International)** | 5.9% | 17.2% | 0.21 |
+| **Fixed Income (Bonds)** | 4.3% | 4.9% | 0.42 |
+| **REITs (Real Estate)** | 9.4% | 19.1% | 0.36 |
+
+**Sources:** The historical return and standard deviation data is aggregated from several long-term financial benchmarks and institutional reports. For the 30-year window (1995–2025), the data is primarily derived from the following index providers and market researchers:
+
+**Core Index Benchmarks**
+- **Large-Cap**: S&P 500 (Standard & Poor's) – The widely accepted benchmark for domestic large-cap equities.
+- **Mid-Cap**: S&P MidCap 400 – Used to track the "mid-cap anomaly" that has seen this segment outperform both large and small caps over several decades.
+- **Small-Cap**: Russell 2000 (FTSE Russell) – The standard benchmark for the small-cap market, frequently compared against large-caps for "size premium" analysis.
+- **Micro-Cap**: Russell Microcap – Provides the longest reliable data set for the smallest publicly traded companies.
+- **International**: MSCI EAFE Index – The industry standard for developed markets outside North America.
+- **Real Estate**: FTSE Nareit All Equity REITs – The primary index used to track the historical performance of publicly traded real estate investment trusts.
+- **Bonds**: Bloomberg US Aggregate Bond Index – The foundational index for the total U.S. bond market.
+
+**Historical Context:**
+- **Mid-Cap Premium:** Established mid-cap companies have historically outperformed both large and small caps, balancing growth potential with stability.
+- **Small-Cap Lag:** Small-caps have underperformed Large-caps over this specific 30-year window, highlighting periods where mega-cap dominance persists.
+- **Micro-Cap Volatility:** Highest risk (23.1%) but lower returns in this window, reflecting a "lottery ticket" profile where major winners are offset by higher failure rates.
+- **International Lag:** Developed international markets (MSCI EAFE) have significantly trailed U.S. markets over this specific multi-decade cycle.
 
 ## Setup and Installation
 

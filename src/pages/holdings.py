@@ -129,5 +129,72 @@ else:
         )
 
     _ = st.divider()
+
+    # --- Metrics Note ---
+    try:
+        import numpy as np
+
+        returns_df = pl.read_csv("data/asset_classes/returns.csv")
+        correlation_df = pl.read_csv("data/asset_classes/correlation.csv")
+
+        asset_classes: list[str] = returns_df["Asset Class"].to_list()
+
+        # Calculate weights for known asset classes
+        portfolio_agg = combined_df.group_by("asset_class").agg(pl.col("value").sum())
+        known_portfolio = portfolio_agg.filter(
+            pl.col("asset_class").is_in(asset_classes)
+        )
+
+        known_total = float(known_portfolio.select(pl.col("value").sum()).item() or 0.0)
+
+        if known_total > 0:
+            weights_dict = {
+                str(cast(object, row["asset_class"])): float(cast(float, row["value"]))
+                / known_total
+                for row in known_portfolio.to_dicts()
+            }
+
+            mu_dicts = returns_df.select(["Asset Class", "Expected Return"]).to_dicts()
+            mu_dict = {
+                str(cast(object, d["Asset Class"])): float(
+                    cast(float, d["Expected Return"])
+                )
+                for d in mu_dicts
+            }
+
+            sigmas_dicts = returns_df.select(
+                ["Asset Class", "Standard Deviation"]
+            ).to_dicts()
+            sigmas_dict = {
+                str(cast(object, d["Asset Class"])): float(
+                    cast(float, d["Standard Deviation"])
+                )
+                for d in sigmas_dicts
+            }
+
+            # Expected Return
+            expected_return = sum(
+                float(weights_dict.get(ac, 0.0)) * float(mu_dict.get(ac, 0.0))
+                for ac in asset_classes
+            )
+
+            # Risk (Standard Deviation)
+            W = np.array([float(weights_dict.get(ac, 0.0)) for ac in asset_classes])
+            S = np.array([float(sigmas_dict.get(ac, 0.0)) for ac in asset_classes])
+            # Reconstruct Covariance
+            # Skip first column of correlation_df as it's the index
+            R = correlation_df.select(asset_classes).to_numpy()
+            cov = np.outer(S, S) * R
+            portfolio_risk = float(cast(float, np.sqrt(cast(float, W.T @ cov @ W))))
+
+            st.info(
+                f"**Portfolio Projection Summary:** "
+                f"Current Expected Return: **{expected_return:.2%}** | "
+                f"Current Risk (Std Dev): **{portfolio_risk:.2%}**"
+            )
+    except Exception:
+        # Silently fail if metrics files are missing or incomplete
+        pass
+
     with st.expander("🔍 View All Calculated Allocations"):
         _ = st.dataframe(combined_df.to_pandas(), use_container_width=True)

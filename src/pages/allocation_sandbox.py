@@ -2,6 +2,7 @@ from typing import cast
 
 import altair as alt
 import cvxpy as cp
+import numpy as np
 import pandas as pd
 import polars as pl
 import streamlit as st
@@ -80,6 +81,14 @@ else:
 
         # 2. Get Current Allocation
         current_weights = get_current_allocation(combined_df, asset_classes)
+        current_exp_return = sum(
+            current_weights.get(ac, 0.0) * mu.loc[ac] for ac in asset_classes
+        )
+
+        # Calculate current risk
+        W_curr = np.array([current_weights.get(ac, 0.0) for ac in asset_classes])
+        # cov_matrix is a DataFrame, use its values
+        current_risk = float(np.sqrt(W_curr.T @ cov_matrix.values @ W_curr))
 
         # 3. Optimization Sandbox
         st.subheader("Optimization Parameters")
@@ -112,27 +121,37 @@ else:
         min_risk = float(cast(float, sigmas.min()))
         max_risk = float(cast(float, sigmas.max()))
 
+        # Initialize session state for sliders
+        if "target_return_val" not in st.session_state:
+            st.session_state.target_return_val = max(
+                min_ret, min(max_ret, current_exp_return)
+            )
+        if "target_risk_val" not in st.session_state:
+            st.session_state.target_risk_val = max(
+                min_risk, min(max_risk, current_risk)
+            )
+
         with col_left:
             if opt_goal == "Minimize Risk for Target Return":
                 target_val = st.slider(
                     "Target Expected Return",
                     min_value=min_ret,
                     max_value=max_ret,
-                    value=max(min_ret, min(max_ret, 0.07)),  # Default to 7% if possible
+                    value=st.session_state.target_return_val,
                     format="%.3f",
                     step=0.001,
                 )
+                st.session_state.target_return_val = target_val
             else:
                 target_val = st.slider(
                     "Target Portfolio Risk (Std Dev)",
                     min_value=min_risk,
                     max_value=max_risk,
-                    value=max(
-                        min_risk, min(max_risk, 0.15)
-                    ),  # Default to 15% if possible
+                    value=st.session_state.target_risk_val,
                     format="%.3f",
                     step=0.001,
                 )
+                st.session_state.target_risk_val = target_val
 
         with col_right:
             min_weight = (
@@ -315,7 +334,7 @@ else:
                     column=alt.Column(
                         "Asset Class:N",
                         title="Asset Class",
-                        header=alt.Header(labelAngle=-45, labelAlign="right"),
+                        header=alt.Header(labelOrient="bottom", labelPadding=10),
                     ),
                 )
                 .properties(width=100, height=300)

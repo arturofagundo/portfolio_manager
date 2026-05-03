@@ -3,10 +3,12 @@ from typing import cast
 import altair as alt
 import cvxpy as cp
 import numpy as np
+import pandas as pd
 import polars as pl
 import streamlit as st
 
 from data_utils import (
+    FundInfo,
     get_account_menus,
     get_all_holdings,
     load_fund_info,
@@ -225,7 +227,11 @@ st.write(
 returns_df, correlation_df = load_asset_metrics()
 
 if returns_df is not None and correlation_df is not None:
-    # Get Current Portfolio Status
+    # 1. Prepare global bounds
+    min_ret = float(cast(float, returns_df["Expected Return"].min()))
+    max_ret = float(cast(float, returns_df["Expected Return"].max()))
+
+    # 2. Get Current Portfolio Status
     fund_info = load_fund_info()
     raw_combined, _ = get_all_holdings()
     account_menus = get_account_menus(fund_info)
@@ -234,12 +240,34 @@ if returns_df is not None and correlation_df is not None:
         st.warning("No portfolio data found. Please ensure your summaries are loaded.")
         initial_value = 100000.0
         account_values = {"Default": 100000.0}
+        current_exp_return = (min_ret + max_ret) / 2
     else:
-        account_values = (
+        account_values_dicts = (
             raw_combined.group_by("account").agg(pl.col("value").sum()).to_dicts()
         )
-        account_values = {d["account"]: d["value"] for d in account_values}
+        account_values = {
+            str(cast(object, d["account"])): float(cast(float, d["value"]))
+            for d in account_values_dicts
+        }
         initial_value = sum(account_values.values())
+
+        # Compute current expected return
+        total_value = initial_value
+        weighted_return = 0.0
+        average_ret = float(cast(float, returns_df["Expected Return"].mean()))
+        for row in raw_combined.to_dicts():
+            fund = fund_info.get(str(cast(object, row["investment"])), FundInfo())
+            if fund.asset_class:
+                filtered = returns_df.filter(pl.col("Asset Class") == fund.asset_class)
+                exp_ret = (
+                    average_ret
+                    if filtered.is_empty()
+                    else float(cast(float, filtered["Expected Return"].item()))
+                )
+                weighted_return += (
+                    float(cast(float, row["value"])) / total_value
+                ) * exp_ret
+        current_exp_return = weighted_return
 
     # Sidebar / Settings
     st.sidebar.header("Simulation Settings")
@@ -255,11 +283,16 @@ if returns_df is not None and correlation_df is not None:
     with col1:
         min_ret = float(cast(float, returns_df["Expected Return"].min()))
         max_ret = float(cast(float, returns_df["Expected Return"].max()))
+
+        # Robust session state handling for the slider default
+        if "target_return_pct_slider" not in st.session_state:
+            st.session_state.target_return_pct_slider = float(current_exp_return * 100)
+
         target_return_pct = st.slider(
             "Target Annual Return",
             min_ret * 100,
             max_ret * 100,
-            (min_ret + max_ret) / 2 * 100,
+            key="target_return_pct_slider",
             format="%.1f%%",
             step=0.1,
         )
@@ -275,11 +308,62 @@ if returns_df is not None and correlation_df is not None:
 
     with col2:
         st.write("**Annual Contributions per Account**")
-        contributions = {}
-        for acc in account_values.keys():
-            contributions[acc] = st.number_input(
-                f"{acc} ($)", min_value=0.0, value=0.0, step=1000.0, format="$%.0f"
+
+        # Create a stable list of accounts for initialization
+        current_accounts = sorted(account_values.keys())
+
+        # Initialize baseline dataframe ONLY ONCE if not present
+        if "baseline_contrib_df" not in st.session_state:
+            st.session_state.baseline_contrib_df = pd.DataFrame(
+                [
+                    {"Account": acc, "Annual Contribution ($)": 0}
+                    for acc in current_accounts
+                ]
             )
+
+        # Sync baseline if the set of accounts actually changed
+        current_acc_set = set(current_accounts)
+        baseline_acc_set = set(st.session_state.baseline_contrib_df["Account"])
+        if current_acc_set != baseline_acc_set:
+            old_data = {
+                str(cast(object, r["Account"])): int(
+                    cast(float, r["Annual Contribution ($)"])
+                )
+                for _, r in st.session_state.baseline_contrib_df.iterrows()
+            }
+            st.session_state.baseline_contrib_df = pd.DataFrame(
+                [
+                    {"Account": acc, "Annual Contribution ($)": old_data.get(acc, 0)}
+                    for acc in current_accounts
+                ]
+            )
+
+        # Call the editor with the baseline. Streamlit's internal widget state
+        # (via the key) will handle preserving user edits across reruns.
+        # We do NOT update st.session_state.baseline_contrib_df here.
+        final_contrib_df = st.data_editor(
+            st.session_state.baseline_contrib_df,
+            column_config={
+                "Account": st.column_config.TextColumn("Account", disabled=True),
+                "Annual Contribution ($)": st.column_config.NumberColumn(
+                    "Annual Contribution ($)",
+                    min_value=0,
+                    step=1000,
+                    format="$%,d",
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            key="annual_contrib_editor_widget",
+        )
+
+        # Use the return value directly for the simulation
+        contributions = {
+            str(cast(object, row["Account"])): float(
+                cast(float, row["Annual Contribution ($)"])
+            )
+            for _, row in final_contrib_df.iterrows()
+        }
 
     if st.button("Run Simulation", type="primary"):
         with st.spinner("Running 500 simulations..."):
