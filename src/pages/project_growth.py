@@ -7,6 +7,7 @@ import polars as pl
 import streamlit as st
 
 from data_utils import (
+    FundInfo,
     get_account_menus,
     get_all_holdings,
     load_fund_info,
@@ -225,7 +226,11 @@ st.write(
 returns_df, correlation_df = load_asset_metrics()
 
 if returns_df is not None and correlation_df is not None:
-    # Get Current Portfolio Status
+    # 1. Prepare global bounds
+    min_ret = float(cast(float, returns_df["Expected Return"].min()))
+    max_ret = float(cast(float, returns_df["Expected Return"].max()))
+
+    # 2. Get Current Portfolio Status
     fund_info = load_fund_info()
     raw_combined, _ = get_all_holdings()
     account_menus = get_account_menus(fund_info)
@@ -234,12 +239,34 @@ if returns_df is not None and correlation_df is not None:
         st.warning("No portfolio data found. Please ensure your summaries are loaded.")
         initial_value = 100000.0
         account_values = {"Default": 100000.0}
+        current_exp_return = (min_ret + max_ret) / 2
     else:
-        account_values = (
+        account_values_dicts = (
             raw_combined.group_by("account").agg(pl.col("value").sum()).to_dicts()
         )
-        account_values = {d["account"]: d["value"] for d in account_values}
+        account_values = {
+            str(cast(object, d["account"])): float(cast(float, d["value"]))
+            for d in account_values_dicts
+        }
         initial_value = sum(account_values.values())
+
+        # Compute current expected return
+        total_value = initial_value
+        weighted_return = 0.0
+        average_ret = float(cast(float, returns_df["Expected Return"].mean()))
+        for row in raw_combined.to_dicts():
+            fund = fund_info.get(str(cast(object, row["investment"])), FundInfo())
+            if fund.asset_class:
+                filtered = returns_df.filter(pl.col("Asset Class") == fund.asset_class)
+                exp_ret = (
+                    average_ret
+                    if filtered.is_empty()
+                    else float(cast(float, filtered["Expected Return"].item()))
+                )
+                weighted_return += (
+                    float(cast(float, row["value"])) / total_value
+                ) * exp_ret
+        current_exp_return = weighted_return
 
     # Sidebar / Settings
     st.sidebar.header("Simulation Settings")
@@ -255,11 +282,16 @@ if returns_df is not None and correlation_df is not None:
     with col1:
         min_ret = float(cast(float, returns_df["Expected Return"].min()))
         max_ret = float(cast(float, returns_df["Expected Return"].max()))
+
+        # Robust session state handling for the slider default
+        if "target_return_pct_slider" not in st.session_state:
+            st.session_state.target_return_pct_slider = float(current_exp_return * 100)
+
         target_return_pct = st.slider(
             "Target Annual Return",
             min_ret * 100,
             max_ret * 100,
-            (min_ret + max_ret) / 2 * 100,
+            key="target_return_pct_slider",
             format="%.1f%%",
             step=0.1,
         )
@@ -277,8 +309,14 @@ if returns_df is not None and correlation_df is not None:
         st.write("**Annual Contributions per Account**")
         contributions = {}
         for acc in account_values.keys():
-            contributions[acc] = st.number_input(
-                f"{acc} ($)", min_value=0.0, value=0.0, step=1000.0, format="$%.0f"
+            # Use integer types and step to show comma formatting in the UI
+            contributions[acc] = float(
+                st.number_input(
+                    f"{acc} Annual Contribution ($)",
+                    min_value=0,
+                    value=0,
+                    step=1000,
+                )
             )
 
     if st.button("Run Simulation", type="primary"):

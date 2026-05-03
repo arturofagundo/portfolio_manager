@@ -1,8 +1,8 @@
 Asset Class,Expected Return,Standard Deviation
-Domestic Equities,0.104,0.150
-International Equities,0.064,0.155
-Mid-Cap,0.118,0.175
-Small-Cap,0.108,0.185
-Micro-Cap,0.103,0.220
-Real Estate,0.087,0.190
-Bonds,0.047,0.050
+Domestic Equities,0.105,0.152
+International Equities,0.059,0.172
+Mid-Cap,0.112,0.178
+Small-Cap,0.098,0.196
+Micro-Cap,0.092,0.231
+Real Estate,0.094,0.191
+Bonds,0.043,0.049
