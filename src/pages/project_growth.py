@@ -3,6 +3,7 @@ from typing import cast
 import altair as alt
 import cvxpy as cp
 import numpy as np
+import pandas as pd
 import polars as pl
 import streamlit as st
 
@@ -307,17 +308,62 @@ if returns_df is not None and correlation_df is not None:
 
     with col2:
         st.write("**Annual Contributions per Account**")
-        contributions = {}
-        for acc in account_values.keys():
-            # Use integer types and step to show comma formatting in the UI
-            contributions[acc] = float(
-                st.number_input(
-                    f"{acc} Annual Contribution ($)",
-                    min_value=0,
-                    value=0,
-                    step=1000,
-                )
+
+        # Create a stable list of accounts for initialization
+        current_accounts = sorted(account_values.keys())
+
+        # Initialize baseline dataframe ONLY ONCE if not present
+        if "baseline_contrib_df" not in st.session_state:
+            st.session_state.baseline_contrib_df = pd.DataFrame(
+                [
+                    {"Account": acc, "Annual Contribution ($)": 0}
+                    for acc in current_accounts
+                ]
             )
+
+        # Sync baseline if the set of accounts actually changed
+        current_acc_set = set(current_accounts)
+        baseline_acc_set = set(st.session_state.baseline_contrib_df["Account"])
+        if current_acc_set != baseline_acc_set:
+            old_data = {
+                str(cast(object, r["Account"])): int(
+                    cast(float, r["Annual Contribution ($)"])
+                )
+                for _, r in st.session_state.baseline_contrib_df.iterrows()
+            }
+            st.session_state.baseline_contrib_df = pd.DataFrame(
+                [
+                    {"Account": acc, "Annual Contribution ($)": old_data.get(acc, 0)}
+                    for acc in current_accounts
+                ]
+            )
+
+        # Call the editor with the baseline. Streamlit's internal widget state
+        # (via the key) will handle preserving user edits across reruns.
+        # We do NOT update st.session_state.baseline_contrib_df here.
+        final_contrib_df = st.data_editor(
+            st.session_state.baseline_contrib_df,
+            column_config={
+                "Account": st.column_config.TextColumn("Account", disabled=True),
+                "Annual Contribution ($)": st.column_config.NumberColumn(
+                    "Annual Contribution ($)",
+                    min_value=0,
+                    step=1000,
+                    format="$%,d",
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            key="annual_contrib_editor_widget",
+        )
+
+        # Use the return value directly for the simulation
+        contributions = {
+            str(cast(object, row["Account"])): float(
+                cast(float, row["Annual Contribution ($)"])
+            )
+            for _, row in final_contrib_df.iterrows()
+        }
 
     if st.button("Run Simulation", type="primary"):
         with st.spinner("Running 500 simulations..."):
