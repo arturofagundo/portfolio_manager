@@ -275,7 +275,7 @@ if returns_df is not None and correlation_df is not None:
     inflation_rate = (
         st.sidebar.slider("Contribution Inflation Rate (%)", 0.0, 10.0, 3.0) / 100.0
     )
-    n_paths = 500
+    n_paths = 1000
 
     st.subheader("Assumptions")
     col1, col2 = st.columns(2)
