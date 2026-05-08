@@ -269,12 +269,26 @@ if returns_df is not None and correlation_df is not None:
                 ) * exp_ret
         current_exp_return = weighted_return
 
+    # Initialize session state for sidebar sliders
+    if "time_horizon_years" not in st.session_state:
+        st.session_state.time_horizon_years = 20
+    if "contribution_inflation_rate" not in st.session_state:
+        st.session_state.contribution_inflation_rate = 3.0
+
     # Sidebar / Settings
     st.sidebar.header("Simulation Settings")
-    years = st.sidebar.slider("Time Horizon (Years)", 1, 50, 20)
-    inflation_rate = (
-        st.sidebar.slider("Contribution Inflation Rate (%)", 0.0, 10.0, 3.0) / 100.0
+    years = st.sidebar.slider(
+        "Time Horizon (Years)", 1, 50, st.session_state.time_horizon_years
     )
+    st.session_state.time_horizon_years = years
+    inflation_rate_pct = st.sidebar.slider(
+        "Contribution Inflation Rate (%)",
+        0.0,
+        10.0,
+        st.session_state.contribution_inflation_rate,
+    )
+    st.session_state.contribution_inflation_rate = inflation_rate_pct
+    inflation_rate = inflation_rate_pct / 100.0
     n_paths = 1000
 
     st.subheader("Assumptions")

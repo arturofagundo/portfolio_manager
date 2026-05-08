@@ -131,6 +131,12 @@ else:
                 min_risk, min(max_risk, current_risk)
             )
 
+        # Initialize session state for minimum weight sliders
+        for ac in asset_classes:
+            key = f"min_weight_{ac}"
+            if key not in st.session_state:
+                st.session_state[key] = 0.0
+
         with col_left:
             if opt_goal == "Minimize Risk for Target Return":
                 target_val = st.slider(
@@ -154,16 +160,20 @@ else:
                 st.session_state.target_risk_val = target_val
 
         with col_right:
-            min_weight = (
-                st.slider(
-                    "Minimum Allocation per Asset (%)",
+            st.write("**Minimum Allocation per Asset Class (%)**")
+            min_weights = {}
+            for ac in asset_classes:
+                key = f"min_weight_{ac}"
+                slider_val = st.slider(
+                    f"Min {ac} (%)",
                     min_value=0.0,
-                    max_value=10.0,
-                    value=0.0,
+                    max_value=50.0,
+                    value=cast(float, st.session_state[key]),
                     step=0.5,
+                    key=f"slider_{ac}",
                 )
-                / 100.0
-            )
+                st.session_state[key] = slider_val
+                min_weights[ac] = slider_val / 100.0
 
         st.write("---")
         st.write("**Account-Level Constraints**")
@@ -176,12 +186,16 @@ else:
         # 4. Calculate Optimal Allocation for target return
         ef = EfficientFrontier(mu, cov_matrix)
 
-        if min_weight > 0:
+        for ac, min_w in min_weights.items():
+            if min_w > 0:
+                idx = asset_classes.index(ac)
 
-            def min_weight_cons(w: cp.Variable) -> object:
-                return w >= min_weight
+                def min_weight_cons(
+                    w: cp.Variable, i: int = idx, val: float = min_w
+                ) -> object:
+                    return w[i] >= val
 
-            ef.add_constraint(min_weight_cons)
+                ef.add_constraint(min_weight_cons)
 
         # Variables for account constraints
         weights_matrix: cp.Variable | None = None
