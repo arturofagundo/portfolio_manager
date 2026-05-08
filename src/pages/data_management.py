@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from typing import cast
 
 import pandas as pd
 import polars as pl
@@ -171,6 +172,60 @@ elif active_tab == "🔄 Update Investment Options":
             if os.path.exists(options_path):
                 st.markdown("#### Current Options")
                 options_df = pd.read_csv(options_path)
+
+                # Identify fund name column for both injection and reordering
+                name_col = next(
+                    (
+                        c
+                        for c in ["Fund name", "Description"]
+                        if c in options_df.columns
+                    ),
+                    options_df.columns[0] if not options_df.empty else None,
+                )
+
+                # Define asset class resolver (Central Mapping supersedes CSV)
+                def get_asset_class(fund_name: str, existing_ac: str = "") -> str:
+                    # 1. Check central mapping
+                    info = fund_info.get(str(fund_name))
+                    if info:
+                        return info.asset_class
+                    # 2. Check partial match in central mapping
+                    for name, data in fund_info.items():
+                        if name.lower() in str(fund_name).lower():
+                            return data.asset_class
+                    # 3. Fallback to CSV value if it exists
+                    if pd.notna(existing_ac) and str(existing_ac).strip():
+                        return str(existing_ac)
+                    return "Other/Unclassified"
+
+                if name_col:
+                    # Create a captured non-optional name_col for the function
+                    final_name_col: str = name_col
+
+                    if "Asset Class" in options_df.columns:
+
+                        def _resolve_ac(row: pd.Series) -> str:
+                            return get_asset_class(
+                                cast(str, row[final_name_col]),
+                                cast(str, row["Asset Class"]),
+                            )
+
+                        options_df["Asset Class"] = options_df.apply(
+                            _resolve_ac, axis=1
+                        )
+                    else:
+                        options_df["Asset Class"] = options_df[final_name_col].apply(
+                            get_asset_class
+                        )
+
+                # Reorder columns: Fund name, Asset Class, Symbol, then others
+                if name_col:
+                    cols = options_df.columns.tolist()
+                    preferred = [name_col, "Asset Class", "Symbol"]
+                    existing_preferred = [c for c in preferred if c in cols]
+                    remaining = [c for c in cols if c not in existing_preferred]
+                    options_df = options_df[existing_preferred + remaining]
+
                 st.dataframe(options_df, hide_index=True, use_container_width=True)
             else:
                 st.info(f"No options file found at `{options_path}`.")

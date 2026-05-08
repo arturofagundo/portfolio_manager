@@ -50,6 +50,24 @@ class DummyContainer:
     def dataframe(self, *args, **kwargs):
         return None
 
+    def data_editor(self, df, **kwargs):
+        return df
+
+    def file_uploader(self, *args, **kwargs):
+        return None
+
+    def radio(self, label, options, index=0, **kwargs):
+        return options[index] if options else ""
+
+    def caption(self, *args, **kwargs):
+        return None
+
+    def balloons(self, *args, **kwargs):
+        return None
+
+    def rerun(self, *args, **kwargs):
+        return None
+
     def altair_chart(self, *args, **kwargs):
         return None
 
@@ -91,10 +109,21 @@ class DummyContainer:
         return False
 
 
+class DummySessionState(dict):
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key) from None
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+
 class DummyStreamlit(types.ModuleType):
     def __init__(self):
         super().__init__("streamlit")
-        self.session_state = {}
+        self.session_state = DummySessionState()
 
     def __getattr__(self, name):
         if hasattr(DummyContainer, name):
@@ -104,7 +133,18 @@ class DummyStreamlit(types.ModuleType):
 
 def _patch_streamlit(monkeypatch):
     dummy_st = DummyStreamlit()
+    # Mock streamlit.runtime.uploaded_file_manager for data_management.py
+    runtime = types.ModuleType("runtime")
+    uploaded_file_manager = types.ModuleType("uploaded_file_manager")
+    uploaded_file_manager.UploadedFile = type("UploadedFile", (), {})
+    runtime.uploaded_file_manager = uploaded_file_manager
+    dummy_st.runtime = runtime
+
     monkeypatch.setitem(sys.modules, "streamlit", dummy_st)
+    monkeypatch.setitem(sys.modules, "streamlit.runtime", runtime)
+    monkeypatch.setitem(
+        sys.modules, "streamlit.runtime.uploaded_file_manager", uploaded_file_manager
+    )
     return dummy_st
 
 
@@ -226,4 +266,9 @@ def test_import_portfolio_metrics_page_with_empty_data(monkeypatch):
 
 def test_import_allocation_sandbox_page_with_empty_data(monkeypatch):
     module = _import_page_module("allocation_sandbox", monkeypatch)
+    assert module is not None
+
+
+def test_import_data_management_page_with_empty_data(monkeypatch):
+    module = _import_page_module("data_management", monkeypatch)
     assert module is not None
